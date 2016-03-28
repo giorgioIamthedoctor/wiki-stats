@@ -116,7 +116,88 @@ class WikiGraph:
             if not self.is_redirect(i):
                 num_links.append(self.get_number_of_links_from(i))
         return round(statistics.mean(num_links),2),round(statistics.stdev(num_links),2)
-
+    def num_min_link_on_state(self):
+        mas,_min = wg.link_on_state("num_max","min")
+        return int(mas.count(_min))
+    def link_on_state(self,f,ff):
+        num_links_on = [0] * self.get_number_of_pages()
+        num_link = []
+        num_redirects = [0] * self.get_number_of_pages()
+        num_red = []
+        for i in range(self.get_number_of_pages()):
+            if not self.is_redirect(i):
+                mas = self.get_links_from(i)
+                for x in mas:
+                    if num_links_on[x] != None:
+                        num_links_on[x] += 1
+            else:
+                point = self.get_links_from(i)
+                num_redirects[point[0]] += 1
+                num_redirects[i] = None
+                num_links_on[i] = None
+        num_links_on_max = []
+        num_links_on_min = []
+        num_redirects_max = []
+        num_redirects_min = []
+        for x in num_redirects:
+            if x != None:
+                num_redirects_max.append(x)
+                num_redirects_min.append(x)
+            else:
+                num_redirects_max.append(float("-inf"))
+                num_redirects_min.append(float("+inf"))
+        for x in num_links_on:
+            if x != None:
+                num_links_on_max.append(x)
+                num_links_on_min.append(x)
+            else:
+                num_links_on_max.append(float("-inf"))
+                num_links_on_min.append(float("+inf"))
+        number = num_links_on.index(max(num_links_on_max))
+        number_r = num_redirects.index(max(num_redirects_max))
+        if f == "max":
+            if ff == "max":
+                return int(max(num_links_on_max))
+            else:
+                return int(min(num_links_on_min))
+        elif f == "num_max":
+            if ff == "max":
+                return num_links_on,int(max(num_links_on_max))
+            else:
+                return num_links_on,int(min(num_links_on_min))
+        elif f == "number":
+            return self.get_title(number)
+        elif f == "num_r":
+            if ff == "max":
+                return int(max(num_redirects_max))
+            else:
+                return int(min(num_redirects_min))
+        elif f == "number_r":
+            if ff == "max":
+                return num_redirects,int(max(num_redirects_max))
+            else:
+                return num_redirects,int(min(num_redirects_min))
+        elif f == "sred":
+            num_link[:] = num_links_on[:]
+            while num_link.count(None) > 0:
+                num_link.remove(None)
+            return round(statistics.mean(num_link),2),round(statistics.stdev(num_link),2)
+        elif f == "number_r_":
+            return self.get_title(number_r)
+        elif f == "sred_r":
+            num_red[:] = num_redirects[:]
+            while num_red.count(None) > 0:
+                num_red.remove(None)
+            return round(statistics.mean(num_red),2),round(statistics.stdev(num_red),2)
+    def num_max_link_on_state(self):
+        mas,_max = wg.link_on_state("num_max","max")
+        return int(mas.count(_max))
+    def num_max_redirect_on_state(self):
+        mas,_max = wg.link_on_state("number_r","max")
+        return int(mas.count(_max))
+    def num_min_redirect_on_state(self):
+        mas,_min = wg.link_on_state("number_r","min")
+        return int(mas.count(_min)+mas.count(None))
 
 def hist(fname, data, bins, xlabel, ylabel, title, facecolor='green', alpha=0.5, transparent=True, **kwargs):
     plt.clf()
@@ -142,7 +223,20 @@ if __name__ == '__main__':
         print("Статья с наибольшим количеством ссылок: "+str(b))
         a,b = wg.get_mean()
         print("Среднее количество ссылок в статье: "+str(a)+ " (ср. откл."+str(b)+ ")")
-
+        print("Минимальное количество ссылок на статью: ",wg.link_on_state("max","min"))
+        print("Количество статей с минимальным количеством внешних ссылок: ",wg.num_min_link_on_state())
+        print("Максимальное количество ссылок на статью: ",wg.link_on_state("max","max"))
+        print("Количество статей с максимальным количеством внешних ссылок: ",wg.num_max_link_on_state())
+        print("Статья с наибольшим количеством внешних ссылок: ",wg.link_on_state("number","max"))
+        a,b = wg.link_on_state("sred","")
+        print("Среднее количество внешних ссылок на статью: ",a,"(ср. откл.",b,")")
+        print("Минимальное количество перенаправлений на статью: ",wg.link_on_state("num_r","min"))
+        print("Количество статей с минимальным количеством внешних перенаправлений: ",wg.num_min_redirect_on_state())
+        print("Максимальное количество перенаправлений на статью: ",wg.link_on_state("num_r","max"))
+        print("Количество статей с максимальным количеством внешних перенаправлений: ",wg.num_max_redirect_on_state())
+        print("Статья с наибольшим количеством внешних перенаправлений: ",wg.link_on_state("number_r_",""))
+        a,b = wg.link_on_state("sred_r","")
+        print("Среднее количество внешних перенаправлений на статью: ",a,"(ср. откл. ",b,")")
     else:
         print('Файл с графом не найден')
         sys.exit(-1)
