@@ -8,6 +8,8 @@ import array
 
 import statistics
 
+import numpy as np
+
 from matplotlib import rc
 rc('font', family='Droid Sans', weight='normal', size=14)
 
@@ -189,6 +191,8 @@ class WikiGraph:
             while num_red.count(None) > 0:
                 num_red.remove(None)
             return round(statistics.mean(num_red),2),round(statistics.stdev(num_red),2)
+        elif f == "hist":
+            hist("hist1",num_links_on,np.arange(1,self.get_number_of_pages()+1),"Количество статей","Количество ссылок","Распределение количества ссылок на статью")
     def num_max_link_on_state(self):
         mas,_max = wg.link_on_state("num_max","max")
         return int(mas.count(_max))
@@ -198,9 +202,50 @@ class WikiGraph:
     def num_min_redirect_on_state(self):
         mas,_min = wg.link_on_state("number_r","min")
         return int(mas.count(_min)+mas.count(None))
+    def path(self):
+        start = self.get_id("Python")
+        end = self.get_id("Список_файловых_систем")
+        shortest_leng = {vert:float("+inf") for vert in range(self.get_number_of_pages())}
+        print("Запускаем поиск в ширину")
+        shortest_path = {vert:[] for vert in range(self.get_number_of_pages())}
+        queue = [start]
+        fired = [start]
+        shortest_leng[start] = 0
+        while queue:
+            star = queue.pop(0)
+            for neibours in self.get_links_from(star):
+                new_shortest_path_length = shortest_leng[star] + 1
+                if neibours not in fired:
+                    queue.append(neibours)
+                    fired.append(neibours)
+                if new_shortest_path_length <= shortest_leng[neibours]:
+                    shortest_leng[neibours] = new_shortest_path_length
+                    shortest_path[neibours] = (star,neibours)
+        x = shortest_path[end]
+        path = []
+        path.insert(0,x)
+        print("Поиск закончен. Найден путь:")
+        print(self.get_title(start))
+        while x[0] != start:
+            path.insert(0,shortest_path[x[0]])
+            x = shortest_path[x[0]]
+        for y in path:
+            print(self.get_title(y[1]))
 
 def hist(fname, data, bins, xlabel, ylabel, title, facecolor='green', alpha=0.5, transparent=True, **kwargs):
     plt.clf()
+    width = 0.27
+    while None in data:
+        data.remove(None)
+    plt.hist(data,100,facecolor = facecolor,alpha = alpha)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title(title)
+    print(title)
+    plt.axis([0,wg.num_max_link_on_state(),0,max(data)])
+    plt.grid(True)
+    plt.savefig(fname,fmt='png')
+    plt.show()
     # TODO: нарисовать гистограмму и сохранить в файл
 
 
@@ -237,6 +282,8 @@ if __name__ == '__main__':
         print("Статья с наибольшим количеством внешних перенаправлений: ",wg.link_on_state("number_r_",""))
         a,b = wg.link_on_state("sred_r","")
         print("Среднее количество внешних перенаправлений на статью: ",a,"(ср. откл. ",b,")")
+        wg.path()
+        wg.link_on_state("hist","")
     else:
         print('Файл с графом не найден')
         sys.exit(-1)
